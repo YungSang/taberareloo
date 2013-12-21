@@ -219,7 +219,7 @@
 
               // contains build level
               if (vs.length === 4) {
-                build = parseInt(vs.pop(), 10) + 1;
+                build = parseInt(vs.pop(), 10) + ((process.env.CI === 'yes') ? 1 : 0);
               } else {
                 build = 1;
               }
