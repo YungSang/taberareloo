@@ -504,6 +504,30 @@
         c_value = decodeURIComponent(c_value.substring(c_start, c_end));
       }
       return c_value;
+    },
+
+    require : function (url) {
+      var name = window.url.parse(url).path.split(/[\/\\]/).pop();
+      var ret = new Deferred();
+      var deferred;
+      var patch = this[name];
+      if (patch) {
+        var preference = this.getPreferences(patch.name) || {};
+        if (preference.disabled) {
+          this.setPreferences(patch.name, MochiKit.Base.update(preference, {
+            disabled : false
+          }));
+          deferred = this.loadAndRegister(patch.fileEntry, patch.metadata);
+        } else {
+          return succeed(true);
+        }
+      } else {
+        deferred = this.install(url, true);
+      }
+      deferred.addCallback(function (patch) {
+        ret.callback(!!patch);
+      });
+      return ret;
     }
   });
   Patches.initailize().then(function () {
