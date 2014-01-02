@@ -237,7 +237,7 @@
         var date = new Date();
         var version;
 
-        version = manifest.version + '.' + stamp;
+        version = process.env.version || manifest.version + '.' + stamp;
         grunt.log.writeln('packaging as version ' + version);
         manifest.version = version;
         manifest.update_url = updates;
