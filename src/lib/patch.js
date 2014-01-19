@@ -1,7 +1,7 @@
 // -*- coding: utf-8 -*-
 /*global update:true, Repository:true, chrome:true*/
 /*global TBRL:true, request:true, semver:true*/
-/*global $A:true, promiseAllHash:true*/
+/*global $A:true, promiseAllHash:true, CommandQueue:true*/
 (function (exports) {
   'use strict';
 
@@ -506,10 +506,24 @@
       return c_value;
     },
 
-    require : function (url) {
+    queue : new CommandQueue(10),
+
+    require : function (urls) {
+      var self = this;
+      var promiseList = [];
+
+      [].concat(urls).forEach(function (url) {
+        promiseList.push(self.queue.push(function () {
+          return Patches._require(url);
+        }));
+      });
+
+      return Promise.all(promiseList);
+    },
+
+    _require : function (url) {
+      var promise;
       var name = window.url.parse(url).path.split(/[\/\\]/).pop();
-      var ret = new Deferred();
-      var deferred;
       var patch = this[name];
       if (patch) {
         var preference = this.getPreferences(patch.name) || {};
@@ -517,24 +531,29 @@
           this.setPreferences(patch.name, MochiKit.Base.update(preference, {
             disabled : false
           }));
-          deferred = this.loadAndRegister(patch.fileEntry, patch.metadata);
+          promise = this.loadAndRegister(patch.fileEntry, patch.metadata);
         } else {
-          return succeed(true);
+          return Promise.resolve(true);
         }
       } else {
-        deferred = this.install(url, true);
+        promise = this.install(url, true);
       }
-      deferred.addCallback(function (patch) {
-        ret.callback(!!patch);
+      return promise.then(function (patch) {
+        return !!patch;
       });
-      return ret;
     }
   });
+
   Patches.initailize().then(function () {
+    Patches.queue._runId = 'Wait for loading';
     console.groupCollapsed('Patches: Load');
     Patches.load().then(function () {
       console.groupEnd();
       console.log('Patches: loaded!');
+      Patches.queue._runId = null;
+      if (Patches.queue._commands.length) {
+        Patches.queue._run();
+      }
     });
   });
 
