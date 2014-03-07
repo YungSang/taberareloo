@@ -8,6 +8,7 @@
       "third_party/punycode/punycode.js",
       "third_party/node/querystring.js",
       "third_party/node/url.js",
+      "third_party/encoding/encoding.js",
       "lib/utils.js",
       "lib/proto.js",
       "lib/repository.js",
