@@ -1,7 +1,7 @@
 // -*- coding: utf-8 -*-
 /*global update:true, Repository:true, chrome:true*/
 /*global TBRL:true, request:true, semver:true*/
-/*global $A:true, promiseAllHash:true*/
+/*global $A:true, promiseAllHash:true, CommandQueue:true*/
 (function (exports) {
   'use strict';
 
@@ -504,13 +504,55 @@
         c_value = decodeURIComponent(c_value.substring(c_start, c_end));
       }
       return c_value;
+    },
+
+    queue : new CommandQueue(10),
+
+    require : function (urls) {
+      var self = this;
+      var promiseList = [];
+
+      [].concat(urls).forEach(function (url) {
+        promiseList.push(self.queue.push(function () {
+          return Patches._require(url);
+        }));
+      });
+
+      return Promise.all(promiseList);
+    },
+
+    _require : function (url) {
+      var promise;
+      var name = window.url.parse(url).path.split(/[\/\\]/).pop();
+      var patch = this[name];
+      if (patch) {
+        var preference = this.getPreferences(patch.name) || {};
+        if (preference.disabled) {
+          preference.disabled = false;
+          this.setPreferences(patch.name, preference);
+          promise = this.loadAndRegister(patch.fileEntry, patch.metadata);
+        } else {
+          return Promise.resolve(true);
+        }
+      } else {
+        promise = this.install(url, true);
+      }
+      return promise.then(function (patch) {
+        return !!patch;
+      });
     }
   });
+
   Patches.initailize().then(function () {
+    Patches.queue._runId = 'Wait for loading';
     console.groupCollapsed('Patches: Load');
     Patches.load().then(function () {
       console.groupEnd();
       console.log('Patches: loaded!');
+      Patches.queue._runId = null;
+      if (Patches.queue._commands.length) {
+        Patches.queue._run();
+      }
     });
   });
 
