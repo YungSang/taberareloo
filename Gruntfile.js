@@ -32,8 +32,9 @@
   var xml2js = require('xml2js');
   var Promise = require('bluebird');
 
-  var base    = 'https://drone.io/github.com/Constellation/taberareloo/files/pkg/taberareloo.crx';
-  var updates = 'https://drone.io/github.com/Constellation/taberareloo/files/pkg/updates.xml';
+  var base     = 'https://drone.io/github.com/YungSang/taberareloo/files/pkg/taberareloo.crx';
+  var updates  = 'https://drone.io/github.com/YungSang/taberareloo/files/pkg/updates.xml';
+  var homepage = 'https://drone.io/github.com/YungSang/taberareloo/files';
   var PRIVATE_KEY = 'private.pem';
   var CREDENTIALS = 'oauth.json';
 
@@ -219,7 +220,7 @@
 
               // contains build level
               if (vs.length === 4) {
-                build = parseInt(vs.pop(), 10) + 1;
+                build = parseInt(vs.pop(), 10) + ((process.env.CI === 'yes') ? 1 : 0);
               } else {
                 build = 1;
               }
@@ -237,12 +238,13 @@
         var date = new Date();
         var version;
 
-        version = manifest.version + '.' + stamp;
+        version = process.env.version || manifest.version + '.' + stamp;
         grunt.log.writeln('packaging as version ' + version);
         manifest.version = version;
         manifest.update_url = updates;
-        manifest.name = 'Taberareloo Canary';
-        manifest.description = 'Taberareloo Canary build at ' + date;
+        manifest.homepage_url = homepage;
+        manifest.name = 'Taberareloo Dev';
+        manifest.description = 'Taberareloo YungSang build at ' + date;
         grunt.file.write('out/manifest.json', JSON.stringify(manifest, null, 2));
         done();
       });
